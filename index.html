@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>stattstrack · MOG weekly</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--bg:#0e1420;--card:#151d2c;--line:#243247;--text:#e8eef8;--muted:#8fa0b8;--gold:#ffc42d;--mint:#43e8a4;--coral:#ff4f6d;--cyan:#3fd9ff;--violet:#a78bfa}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 "Segoe UI",system-ui,sans-serif}
+header{position:sticky;top:0;z-index:5;background:#0b1019;border-bottom:1px solid var(--line);padding:10px 18px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+header h1{margin:0;font-size:17px;letter-spacing:.5px}
+.pill{padding:5px 10px;border:1px solid var(--line);border-radius:999px;font-size:13px;color:var(--muted);white-space:nowrap}
+.pill b{color:var(--text)}
+.pill.ok{border-color:rgba(67,232,164,.5);color:var(--mint)}.pill.bad{border-color:rgba(255,79,109,.5);color:var(--coral)}.pill.gold{border-color:rgba(255,196,45,.6);color:var(--gold)}
+.tabs{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.tab{padding:7px 14px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--muted);font-weight:700;cursor:pointer}
+.tab.on{background:#1f2a3f;color:#fff;border-color:#3a4c6d}
+main{max-width:1240px;margin:0 auto;padding:16px 18px 40px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px}
+.bar input{flex:1 1 240px;min-width:200px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text)}
+.bar select{padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);font-weight:700}
+.btn{padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);font-weight:700;cursor:pointer;text-decoration:none}
+.btn.warn{border-color:rgba(255,196,45,.6);color:var(--gold)}
+.note{color:var(--muted);font-size:13px;margin:0 0 12px}
+.log{font:12px/1.5 Consolas,monospace;color:var(--mint);background:#0f1a17;border:1px solid rgba(67,232,164,.3);border-radius:10px;padding:8px 12px;margin:0 0 12px;white-space:pre-wrap}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+th{background:#1a2436;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+td.l,th.l{text-align:left}
+td.name{max-width:280px;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+td.name img{width:26px;height:26px;border-radius:50%;vertical-align:middle;margin-right:8px;background:#0b1019;object-fit:cover}
+td.name i{display:inline-block;width:26px;height:26px;border-radius:50%;vertical-align:middle;margin-right:8px;background:#26314a}
+td.addr{color:var(--muted);font-size:12px;font-family:Consolas,monospace}
+tr.me td{background:rgba(255,196,45,.12)}
+tr.hot td{background:rgba(67,232,164,.08)}
+td.gold{color:var(--gold);font-weight:700}
+td.mint{color:var(--mint);font-weight:700}
+td.cyan{color:var(--cyan);font-weight:700}
+td.marb{color:#7fe3b8}
+td.dim{color:var(--muted)}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--text)}
+th.sortable.on{color:var(--gold)}
+td.pos{color:#5f6f8a;font-size:12px}
+.bar select,.bar label.pill input{padding:5px 8px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--text);font-weight:700}
+.bar label.pill input{width:72px}
+label.pill{display:inline-flex;align-items:center;gap:6px}
+td.total{color:var(--gold);font-weight:900;font-size:16px}
+.rank1 td.dim{color:var(--gold)}.rank2 td.dim{color:#cfd8e6}.rank3 td.dim{color:#e0a060}
+.empty{padding:40px;text-align:center;color:var(--muted)}
+.badge{display:inline-block;font-size:11px;padding:2px 6px;border-radius:6px;background:rgba(63,217,255,.15);color:var(--cyan);margin-left:6px;vertical-align:middle}
+.badge.new{background:rgba(255,79,109,.18);color:var(--coral);font-weight:900}
+.mepin{margin:0 0 12px;padding:10px 14px;border-radius:12px;background:rgba(255,196,45,.12);border:1px solid rgba(255,196,45,.5);font-weight:800}
+.mepin b{color:var(--gold)}
+.bar label.pill input[type=text]{padding:5px 8px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--text);font-weight:700}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏆 stattstrack · MOG weekly</h1>
+  <span class="pill" id="p-week">неделя: —</span>
+  <span class="pill" id="p-last">последний опрос: —</span>
+  <span class="pill" id="p-snap">снимок: —</span>
+  <span class="pill" id="p-total">игроков: —</span>
+  <span class="pill" id="p-wal">кошельки: —</span>
+  <span class="pill" id="p-rate">курс: —</span>
+  <div class="tabs">
+    <button class="tab on" data-tab="live">Живой weekly</button>
+    <button class="tab" data-tab="activity">Кто фармит сейчас</button>
+    <button class="tab" data-tab="snapshot">Снимок</button>
+    <button class="tab" data-tab="combined">Снимок + новая неделя</button>
+  </div>
+</header>
+<main>
+  <div class="bar">
+    <input id="q" placeholder="поиск по нику или адресу">
+    <select id="win" style="display:none">
+      <option value="5">за 5 минут</option>
+      <option value="15" selected>за 15 минут</option>
+      <option value="30">за 30 минут</option>
+      <option value="60">за 60 минут</option>
+      <option value="180">за 3 часа</option>
+    </select>
+    <label class="pill" title="ник или адрес, который выделять во всех таблицах и показывать его место в сводной">мой ник <input id="mynick" type="text" placeholder="florencev" style="width:120px"></label>
+    <label class="pill" id="l-onlynew" style="display:none"><input id="onlynew" type="checkbox"> только новые</label>
+    <label class="pill">сортировка <select id="sort"></select></label>
+    <label class="pill" title="скрыть игроков, у которых потрачено меньше ключей: убирает случайные значения «за ключ»">мин. ключей <input id="minkeys" type="number" min="0" step="10" placeholder="0"></label>
+    <button class="btn" id="csv" type="button">⬇ CSV сводной</button>
+    <span class="pill" id="p-polls">опросов: 0</span>
+  </div>
+  <div class="mepin" id="mepin" style="display:none"></div>
+  <p class="note" id="note"></p>
+  <div class="log" id="snaplog" style="display:none"></div>
+  <div id="table"></div>
+</main>
+<script>
+(function () {
+  var tab = 'live', data = null, act = null, q = '', win = 15, wal = null, onlyNew = false;
+  var myNick = ''; try { myNick = (localStorage.getItem('lbMyNick') || '').trim(); } catch (e) {}
+  var isMe = function (name, addr) { if (!myNick) return false; var m = myNick.toLowerCase(); return String(name || '').toLowerCase() === m || String(addr || '').toLowerCase() === m; };
+  var walOf = function (addr) { return wal && wal.balances ? wal.balances[String(addr || '').toLowerCase()] : null; };
+  var usdOf = function (addr) { var b = walOf(addr); return b && typeof b.usd === 'number' ? b.usd : null; };
+  var fmtUsd = function (n) { return typeof n === 'number' ? '$' + n.toLocaleString('ru-RU') : '—'; };
+  var rateCur = function () { return data && data.rates && data.rates.cur ? data.rates.cur.coinsPerUsd : null; };
+  var ratePrev = function () { return data && data.rates && data.rates.prev ? data.rates.prev.coinsPerUsd : null; };
+  var coinsUsd = function (coins, rate) { return rate && typeof coins === 'number' ? Math.round(coins / rate * 100) / 100 : null; };
+  var fmtUsd2 = function (n) { return typeof n === 'number' ? '$' + n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'; };
+  var fmtEth = function (n) { return typeof n === 'number' ? n.toLocaleString('ru-RU', { maximumFractionDigits: 3 }) : '—'; };
+  var $ = function (s) { return document.querySelector(s); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var fmt = function (n) { return typeof n === 'number' ? n.toLocaleString('ru-RU') : (n == null ? '' : String(n)); };
+  var fmt1 = function (n) { return typeof n === 'number' ? n.toLocaleString('ru-RU', { maximumFractionDigits: 1 }) : '—'; };
+  var perKey = function (coins, keys) { coins = Number(coins) || 0; keys = Number(keys) || 0; return keys ? Math.round((coins / keys) * 10) / 10 : null; };
+  var sgn = function (n) { return n == null ? '—' : (n > 0 ? '+' : '') + fmt(n); };
+  var time = function (t) { return t ? new Date(t).toLocaleString('ru-RU', { hour12: false }) : '—'; };
+  var NAME = ['displayName', 'username', 'name', 'nickname', 'playerName', 'player'], ADDR = ['address', 'wallet', 'walletAddress', 'userId', 'playerId', 'id'];
+  var pick = function (row, keys) { for (var i = 0; i < keys.length; i++) if (row && row[keys[i]] != null && row[keys[i]] !== '') return row[keys[i]]; return null; };
+  var shortAddr = function (a) { a = a == null ? '' : String(a); return a.length > 14 ? a.slice(0, 6) + '…' + a.slice(-4) : a; };
+  var matches = function (name, addr) { if (!q) return true; var s = q.toLowerCase(); return String(name || '').toLowerCase().indexOf(s) >= 0 || String(addr || '').toLowerCase().indexOf(s) >= 0; };
+  var avatar = function (url) { return url ? '<img src="' + esc(url) + '" alt="" loading="lazy" onerror="this.replaceWith(document.createElement(\'i\'))">' : '<i></i>'; };
+  var playerCell = function (name, addr, av) { return '<td class="l name" title="' + esc(addr) + '">' + avatar(av) + esc(name) + '</td>'; };
+
+  var SORTS = {
+    live: { rank: 'место', treasure: 'монеты', marbles: 'марблы', runCount: 'забеги', totalKeysSpent: 'ключи', perKey: 'монет за ключ', coinsUsd: '≈ $ выплата', usd: '$ на кошельке', ethAbs: 'ETH на Abstract', usdc: 'USDC.e' },
+    combined: { rank: 'место', snapshot: 'снимок', current: 'новая неделя', total: 'TOTAL COINS', keysTotal: 'ключи всего', perKey: 'монет за ключ', coinsUsd: '≈ $ выплата', usd: '$ на кошельке' },
+    activity: { rank: 'место', treasure: 'монеты сейчас', dTreasure: '+монеты за окно', dRuns: '+забеги', dKeys: '+ключи' }
+  };
+  var sortKey = 'rank', sortDir = 'asc', minKeys = 0;
+  try { var sv = JSON.parse(localStorage.getItem('lbSort') || 'null'); if (sv) { sortKey = sv.k || 'rank'; sortDir = sv.d || 'asc'; minKeys = Number(sv.m) || 0; } } catch (e) {}
+  function saveSort() { try { localStorage.setItem('lbSort', JSON.stringify({ k: sortKey, d: sortDir, m: minKeys })); } catch (e) {} }
+  function kindOf() { return tab === 'combined' ? 'combined' : tab === 'activity' ? 'activity' : 'raw'; }
+  function valueOf(r, key, kind) {
+    if (key === 'perKey') return kind === 'raw' ? perKey(r.treasure, r.totalKeysSpent) : (typeof r.perKey === 'number' ? r.perKey : null);
+    if (key === 'coinsUsd') return kind === 'raw' ? coinsUsd(r.treasure, tab === 'snapshot' ? ratePrev() : rateCur()) : combUsd(r);
+    if (key === 'usd' || key === 'ethAbs' || key === 'usdc') { var b = walOf(kind === 'raw' ? pick(r, ADDR) : r.address); if (!b) return null; return key === 'usd' ? (typeof b.usd === 'number' ? b.usd : null) : key === 'ethAbs' ? ((b.eth || 0) + (b.weth || 0)) : (typeof b.usdc === 'number' ? b.usdc : null); }
+    var v = r[key]; return typeof v === 'number' ? v : (v == null ? null : Number(v));
+  }
+  function keysOf(r, kind) { return kind === 'raw' ? (Number(r.totalKeysSpent) || 0) : kind === 'combined' ? (Number(r.keysTotal) || 0) : (Number(r.keys) || 0); }
+  function orderRows(rows, kind) { // только переставляет строки; цифры и места из игры не меняются
+    var out = rows.filter(function (r) { return !(minKeys > 0 && keysOf(r, kind) < minKeys); });
+    if (sortKey === 'rank' && sortDir === 'asc') return out;
+    out.sort(function (a, b) {
+      var va = valueOf(a, sortKey, kind), vb = valueOf(b, sortKey, kind);
+      if (va == null && vb == null) return 0; if (va == null) return 1; if (vb == null) return -1;
+      return sortDir === 'desc' ? vb - va : va - vb;
+    });
+    return out;
+  }
+  function th(key, label, cls) { var on = sortKey === key; return '<th class="sortable' + (cls ? ' ' + cls : '') + (on ? ' on' : '') + '" data-sort="' + key + '" title="сортировать">' + label + (on ? (sortDir === 'desc' ? ' ▼' : ' ▲') : '') + '</th>'; }
+  var sortedMode = function () { return !(sortKey === 'rank' && sortDir === 'asc'); };
+  var posCell = function (i) { return sortedMode() ? '<td class="dim pos">' + (i + 1) + '</td>' : ''; };
+  var posHead = function () { return sortedMode() ? '<th title="позиция в текущей сортировке">№</th>' : ''; };
+  function fillSortSelect() {
+    var sel = $('#sort'), opts = SORTS[kindOf() === 'raw' ? 'live' : kindOf()], h = '';
+    if (!opts[sortKey]) { sortKey = 'rank'; sortDir = 'asc'; }
+    Object.keys(opts).forEach(function (k) { h += '<option value="' + k + '"' + (k === sortKey ? ' selected' : '') + '>' + esc(opts[k]) + (k === 'rank' ? '' : ' ▼') + '</option>'; });
+    sel.innerHTML = h;
+    $('#minkeys').value = minKeys || '';
+  }
+
+  function renderRaw(rec, label) { // как в игре: # · игрок · монеты · марблы · забеги · ключи, плюс монеты за ключ
+    if (!rec) return '<div class="empty">' + esc(label) + ': данных ещё нет</div>';
+    var rows = orderRows(rec.leaderboard || [], 'raw'), meKey = rec.user ? String(pick(rec.user, ADDR) || '').toLowerCase() : '';
+    var h = '<table><tr>' + posHead() + th('rank', '#') + '<th class="l">игрок</th><th class="l">адрес</th>' + th('treasure', '🪙 монеты') + th('marbles', '💚 марблы') + th('runCount', '🏃 забеги') + th('totalKeysSpent', '🔑 ключи') + th('perKey', '🪙 за ключ') + th('coinsUsd', '≈ $ выплата') + th('ethAbs', 'ETH Abstract') + th('usdc', 'USDC.e') + th('usd', '$ на кошельке') + '</tr>';
+    var shown = 0;
+    rows.forEach(function (r, i) {
+      var name = pick(r, NAME), addr = pick(r, ADDR);
+      if (!matches(name, addr)) return;
+      var rank = r.rank || i + 1, me = (meKey && String(addr || '').toLowerCase() === meKey) || isMe(name, addr);
+      if (rank === 301 && !q && !sortedMode() && !minKeys) h += '<tr><td colspan="12" class="l dim" style="text-align:center;background:#10182a">ниже топ-300 · обновляется реже (полный список раз в 5 минут, у конца недели раз в 30 секунд)</td></tr>';
+      h += '<tr class="rank' + rank + (me ? ' me' : '') + '">' + posCell(shown) + '<td class="dim">' + rank + '</td>' + playerCell(name, addr, r.profilePictureUrl) + '<td class="l addr">' + esc(shortAddr(addr)) + '</td><td class="gold">' + fmt(r.treasure) + '</td><td class="marb">' + fmt(r.marbles) + '</td><td>' + fmt(r.runCount) + '</td><td class="dim">' + fmt(r.totalKeysSpent) + '</td><td class="cyan">' + fmt1(perKey(r.treasure, r.totalKeysSpent)) + '</td><td class="mint">' + fmtUsd2(coinsUsd(r.treasure, rec === data.snapshot ? ratePrev() : rateCur())) + '</td>' + walCells(addr) + '</tr>';
+      shown++;
+    });
+    h += '</table>';
+    if (!shown) h += '<div class="empty">ничего не найдено</div>';
+    return h;
+  }
+  function walCells(addr) {
+    var b = walOf(addr);
+    if (!b) return '<td class="dim">—</td><td class="dim">—</td><td class="dim">—</td>';
+    var eth = (b.eth || 0) + (b.weth || 0);
+    return '<td class="dim">' + fmtEth(eth) + (b.ethMain ? ' <small title="плюс ETH в основной сети">+' + fmtEth(b.ethMain) + '</small>' : '') + '</td><td class="dim">' + (typeof b.usdc === 'number' ? b.usdc.toLocaleString('ru-RU', { maximumFractionDigits: 0 }) : '—') + '</td><td class="' + (b.usd >= 1000 ? 'gold' : 'dim') + '">' + fmtUsd(b.usd) + '</td>';
+  }
+  var combUsd = function (r) { var a = coinsUsd(r.snapshot, ratePrev()), b = coinsUsd(r.current, rateCur()); if (a == null && b == null) return null; return Math.round(((a || 0) + (b || 0)) * 100) / 100; };
+  function renderCombined(c) {
+    if (!c || !c.rows.length) return '<div class="empty">сводной ещё нет: нужен хотя бы один опрос</div>';
+    var rows = orderRows(c.rows, 'combined');
+    if (onlyNew) rows = rows.filter(function (r) { return r.isNew; });
+    var h = '<table><tr>' + posHead() + th('rank', '#') + '<th class="l">игрок</th><th class="l">адрес</th>' + th('snapshot', 'снимок (прошлая неделя)') + th('current', 'новая неделя') + th('total', 'TOTAL COINS') + th('keysTotal', '🔑 ключи всего') + th('perKey', '🪙 за ключ') + th('coinsUsd', '≈ $ выплата') + th('usd', '$ на кошельке') + '</tr>';
+    var shown = 0;
+    rows.forEach(function (r) {
+      if (!matches(r.name, r.address)) return;
+      var me = isMe(r.name, r.address);
+      var cell = playerCell(r.name, r.address, r.avatar);
+      if (r.isNew) cell = cell.replace('</td>', '<span class="badge new" title="в снимке прошлой недели его не было">НОВЫЙ</span></td>');
+      h += '<tr' + (me ? ' class="me"' : '') + '>' + posCell(shown) + '<td class="dim">' + r.rank + '</td>' + cell + '<td class="l addr">' + esc(shortAddr(r.address)) + '</td><td class="dim">' + (r.isNew ? '—' : fmt(r.snapshot)) + '</td><td class="mint">' + (c.newWeek ? '+' + fmt(r.current) : '—') + '</td><td class="total">' + fmt(r.total) + '</td><td class="dim">' + fmt(r.keysTotal) + '</td><td class="cyan">' + fmt1(r.perKey) + '</td><td class="mint">' + fmtUsd2(combUsd(r)) + '</td><td class="' + (usdOf(r.address) >= 1000 ? 'gold' : 'dim') + '">' + fmtUsd(usdOf(r.address)) + '</td></tr>';
+      shown++;
+    });
+    h += '</table>';
+    if (!shown) h += '<div class="empty">ничего не найдено</div>';
+    return h;
+  }
+  function renderActivity(a) {
+    if (!a || !a.rows.length) return '<div class="empty">' + esc(a && a.note ? a.note : 'история опросов ещё копится: подожди пару минут') + '</div>';
+    var rows = (sortKey === 'rank' && sortDir === 'asc') ? a.rows.filter(function (r) { return !(minKeys > 0 && keysOf(r, 'activity') < minKeys); }) : orderRows(a.rows, 'activity');
+    var h = '<table><tr>' + posHead() + th('rank', '#') + '<th class="l">игрок</th>' + th('treasure', '🪙 сейчас') + th('dTreasure', '+монеты за окно') + th('dRuns', '+забеги') + th('dKeys', '+ключи') + '<th>место было</th></tr>';
+    var shown = 0;
+    rows.forEach(function (r) {
+      if (!matches(r.name, r.address)) return;
+      var hot = (r.dTreasure || 0) > 0;
+      h += '<tr class="' + (hot ? 'hot' : '') + '">' + posCell(shown) + '<td class="dim">' + r.rank + '</td>' + playerCell(r.name, r.address, r.avatar) + '<td class="gold">' + fmt(r.treasure) + '</td><td class="' + (hot ? 'mint' : 'dim') + '">' + (r.isNew ? '<span class="badge">новый в таблице</span>' : sgn(r.dTreasure)) + '</td><td class="' + (r.dRuns > 0 ? 'mint' : 'dim') + '">' + (r.isNew ? '—' : sgn(r.dRuns)) + '</td><td class="' + (r.dKeys > 0 ? '' : 'dim') + '">' + (r.isNew ? '—' : sgn(r.dKeys)) + '</td><td class="dim">' + (r.prevRank != null ? (r.prevRank === r.rank ? '=' : r.prevRank + ' → ' + r.rank) : '—') + '</td></tr>';
+      shown++;
+    });
+    h += '</table>';
+    if (!shown) h += '<div class="empty">ничего не найдено</div>';
+    return h;
+  }
+  function render() {
+    if (!data) return;
+    var latest = data.latest, snap = data.snapshot, c = data.combined;
+    var we = latest && latest.weekEnd ? new Date(latest.weekEnd) : null;
+    var left = we ? Math.round((we.getTime() - Date.now()) / 60000) : null;
+    $('#p-week').innerHTML = we ? 'конец недели: <b>' + esc(time(we)) + '</b>' + (left != null ? (left >= 0 ? ' · через ' + left + ' мин' : ' · прошёл ' + (-left) + ' мин назад') : '') : 'неделя: —';
+    var age = latest ? Math.round((Date.now() - latest.at) / 1000) : null;
+    var lastEl = $('#p-last');
+    lastEl.innerHTML = latest ? 'последний опрос: <b>' + esc(time(latest.at)) + '</b> · ' + latest.leaderboard.length + ' строк' + (age != null ? ' · ' + age + ' с назад' : '') : 'последний опрос: — (расширение ещё не прислало данных)';
+    lastEl.className = 'pill ' + (age == null ? 'bad' : age > 600 ? 'bad' : 'ok');
+    var snapEl = $('#p-snap');
+    snapEl.innerHTML = snap ? 'снимок: <b>' + esc(time(snap.at)) + '</b> · ' + snap.leaderboard.length + ' строк · ' + (data.snapshotKind === 'weekEnd' ? 'ЗАФИКСИРОВАН при смене недели' : data.snapshotKind === 'manual' ? 'заморожен вручную' : 'пока = последний опрос до конца недели') : 'снимок: ещё нет';
+    snapEl.className = 'pill ' + (snap ? (data.snapshotKind === 'weekEnd' ? 'gold' : data.snapshotKind === 'manual' ? 'ok' : '') : 'bad');
+    $('#p-polls').textContent = 'опросов: ' + data.polls + (data.publishedAt ? ' · выложено ' + new Date(data.publishedAt).toLocaleTimeString('ru-RU', { hour12: false }) : '');
+    var pr = $('#p-rate');
+    if (data.rates && (data.rates.cur || data.rates.prev)) { var rc = data.rates.cur, rp = data.rates.prev; pr.innerHTML = 'курс: ' + (rc ? '<b>' + Math.round(rc.coinsPerUsd).toLocaleString('ru-RU') + ' монет = $1</b> · пул недели $' + Math.round(rc.poolUsd).toLocaleString('ru-RU') : '') + (rp ? ' · прошлая неделя ' + Math.round(rp.coinsPerUsd).toLocaleString('ru-RU') + ' монет = $1, пул $' + Math.round(rp.poolUsd).toLocaleString('ru-RU') : ''); pr.className = 'pill ok'; pr.title = 'курс = общий treasure недели / пул недели; пул растёт с покупками ключей, поэтому курс плавает'; }
+    var pw = $('#p-wal');
+    if (wal && wal.status) { var st = wal.status; pw.innerHTML = 'кошельки: <b>' + (st.count || 0) + '</b>' + (st.running ? ' · скан ' + st.scanned + '/' + st.total : (st.at ? ' · ' + esc(new Date(st.at).toLocaleTimeString('ru-RU', { hour12: false })) : '')) + (wal.price ? ' · ETH $' + Math.round(wal.price) : '') + (st.lastError ? ' · ' + esc(st.lastError) : ''); pw.className = 'pill ' + (st.lastError ? 'bad' : st.at ? 'ok' : ''); }
+    var tot = $('#p-total');
+    tot.innerHTML = latest ? 'в таблице: <b>' + latest.leaderboard.length + '</b>' + (latest.total != null ? ' из ' + latest.total + ' игроков weekly' : '') + (latest.tailFrom ? ' · хвост от ' + esc(new Date(latest.tailFrom).toLocaleTimeString('ru-RU', { hour12: false })) : '') : 'игроков: —';
+    var note = '';
+    if (tab === 'live') note = 'Те же строки и цифры, что во вкладке Weekly в игре (тот же запрос к серверу игры, все страницы). Топ-600 сборщик опрашивает каждые 30 секунд, остальные места раз в 5 минут; сюда попадает раз в 2 минуты. «За ключ» = монеты / потраченные ключи. Кошелёк: ETH + WETH + USDC.e на Abstract и ETH в основной сети, в $ по курсу CoinGecko, обновляется раз в 30 минут; NFT, ключи и другие сети не считаются.';
+    if (tab === 'snapshot') note = 'Последнее состояние старой недели перед сбросом. Журнал снимка ниже.';
+    if (tab === 'combined') note = c && c.newWeek ? 'TOTAL COINS = монеты из снимка прошлой недели + монеты новой недели, по адресу кошелька. Место здесь = общее место среди всех, старых и новых. Красная пометка НОВЫЙ = игрока не было в снимке, он пришёл на этой неделе' + (c.newCount ? ' (таких сейчас ' + c.newCount + ')' : '') + '. «За ключ» = TOTAL COINS / ключи за обе недели.' : 'Новая неделя ещё не началась: TOTAL COINS пока равен текущей неделе. После сброса здесь появится снимок + новая неделя.';
+    if (tab === 'activity') note = 'Прирост за выбранное окно по каждому игроку таблицы: кто прямо сейчас докидывает монеты, сколько забегов и ключей сжёг. Показаны только те, у кого за окно есть прирост или кто новый в таблице. Сортировка и «мин. ключей» только переставляют и скрывают строки, цифры из игры не меняются.';
+    $('#note').textContent = note;
+    var lg = $('#snaplog');
+    if ((tab === 'snapshot' || tab === 'combined') && data.snapshotLog && data.snapshotLog.length) { lg.style.display = ''; lg.textContent = data.snapshotLog.join('\n'); } else lg.style.display = 'none';
+    $('#win').style.display = tab === 'activity' ? '' : 'none';
+    $('#l-onlynew').style.display = tab === 'combined' ? '' : 'none';
+    var pin = '';
+    if (myNick && c && c.rows.length) {
+      var mine = c.rows.filter(function (r) { return isMe(r.name, r.address); })[0];
+      if (mine) pin = '<b>' + esc(mine.name) + '</b>: в сводной <b>' + mine.rank + ' место из ' + c.rows.length + '</b> · TOTAL COINS <b>' + fmt(mine.total) + '</b>' + (combUsd(mine) != null ? ' ≈ <b>' + fmtUsd2(combUsd(mine)) + '</b>' : '') + ' (снимок ' + fmt(mine.snapshot) + ' + новая неделя ' + fmt(mine.current) + ')' + (mine.curRank ? ' · в живом weekly сейчас ' + mine.curRank + ' место' : ' · в новой неделе ещё нет забегов') + (c.newCount ? ' · новых игроков, которых не было в снимке: <b>' + c.newCount + '</b>' : '');
+      else pin = 'ник «' + esc(myNick) + '» в таблице не найден';
+    }
+    var pinEl = $('#mepin'); pinEl.style.display = pin ? '' : 'none'; pinEl.innerHTML = pin;
+    $('#table').innerHTML = tab === 'live' ? renderRaw(latest, 'живой weekly') : tab === 'snapshot' ? renderRaw(snap, 'снимок') : tab === 'combined' ? renderCombined(c) : renderActivity(act);
+  }
+  var DATA_BASE = 'https://raw.githubusercontent.com/Florencvv/stattstrack/data/';
+  var bust = function () { return '?t=' + Date.now(); };
+  var NAMEK = ['displayName', 'username', 'name', 'nickname', 'playerName', 'player'], ADDRK = ['address', 'wallet', 'walletAddress', 'userId', 'playerId', 'id'];
+  var pk = function (row, keys) { for (var i = 0; i < keys.length; i++) if (row && row[keys[i]] != null && row[keys[i]] !== '') return row[keys[i]]; return null; };
+  var rowKey = function (row) { var a = pk(row, ADDRK); if (a != null) return String(a).toLowerCase(); var n = pk(row, NAMEK); return n != null ? 'name:' + String(n).toLowerCase() : null; };
+  var numv = function (v) { return typeof v === 'number' ? v : (Number(v) || 0); };
+  function expandRows(cols, rows) { return (rows || []).map(function (a) { var o = {}; cols.forEach(function (c, i) { o[c] = a[i]; }); return o; }); }
+  function computeCombined(snap, cur) { // та же логика, что на сервере: снимок + новая неделя по адресу
+    var snapWe = snap && snap.weekEnd ? new Date(snap.weekEnd).getTime() : null, curWe = cur && cur.weekEnd ? new Date(cur.weekEnd).getTime() : null;
+    var newWeek = !!(snap && cur && snapWe && curWe && curWe > snapWe);
+    var map = {};
+    var add = function (rec, field) {
+      (rec && rec.leaderboard || []).forEach(function (row) {
+        var k = rowKey(row); if (!k) return;
+        var e = map[k] || (map[k] = { key: k, name: pk(row, NAMEK), address: pk(row, ADDRK), avatar: row.profilePictureUrl || null, snapshot: 0, current: 0, keysSnapshot: 0, keysCurrent: 0, inSnap: false, inCur: false, curRank: null, snapshotLive: null });
+        e[field] = numv(row.treasure);
+        if (field === 'snapshot') { e.keysSnapshot = numv(row.totalKeysSpent); e.inSnap = true; } else { e.keysCurrent = numv(row.totalKeysSpent); e.inCur = true; e.curRank = numv(row.rank) || null; }
+        if (!e.name) e.name = pk(row, NAMEK);
+        if (!e.avatar && row.profilePictureUrl) e.avatar = row.profilePictureUrl;
+      });
+    };
+    if (snap) add(snap, 'snapshot');
+    if (cur) add(cur, newWeek ? 'current' : 'snapshotLive');
+    var rows = Object.keys(map).map(function (k) { var e = map[k];
+      var total = newWeek ? e.snapshot + e.current : (e.snapshotLive != null ? e.snapshotLive : e.snapshot);
+      var keysTotal = newWeek ? e.keysSnapshot + e.keysCurrent : (e.snapshotLive != null ? e.keysCurrent : e.keysSnapshot);
+      return { key: e.key, name: e.name, address: e.address, avatar: e.avatar, snapshot: newWeek ? e.snapshot : (e.snapshotLive != null ? e.snapshotLive : e.snapshot), current: newWeek ? e.current : 0, total: total,
+        keysSnapshot: newWeek ? e.keysSnapshot : 0, keysCurrent: newWeek ? e.keysCurrent : keysTotal, keysTotal: keysTotal, perKey: keysTotal ? Math.round(total / keysTotal * 10) / 10 : null,
+        isNew: newWeek ? (e.inCur && !e.inSnap) : false, inCur: e.inCur, curRank: e.curRank };
+    });
+    rows.sort(function (a, b) { return b.total - a.total; });
+    rows.forEach(function (r, i) { r.rank = i + 1; });
+    return { newWeek: newWeek, snapshotWeekEnd: snap ? snap.weekEnd : null, currentWeekEnd: cur ? cur.weekEnd : null, newCount: rows.filter(function (r) { return r.isNew; }).length, rows: rows };
+  }
+  var walTick = 0, actRaw = null;
+  function adaptActivity() {
+    if (!actRaw || !actRaw.windows || !actRaw.windows[win]) { act = null; return; }
+    var w = actRaw.windows[win];
+    act = { minutes: win, baseAt: w.baseAt, note: w.note, rows: (w.rows || []).map(function (a) { return { rank: a[0], name: a[1], address: a[2], avatar: a[3], treasure: a[4], dTreasure: a[5], runs: a[6], dRuns: a[7], keys: a[8], dKeys: a[9], isNew: !!a[10], prevRank: a[11] }; }) };
+    if (!act.rows.length && !act.note) act.note = 'за это окно ни у кого нет прироста';
+  }
+  function load() {
+    fetch(DATA_BASE + 'data.json' + bust(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
+      var latest = j.latest ? { at: j.latest.at, weekEnd: j.latest.weekEnd, total: j.latest.total, tailFrom: j.latest.tailFrom, leaderboard: expandRows(j.cols, j.latest.rows), user: null } : null;
+      var snap = j.snapshot ? { at: j.snapshot.at, weekEnd: j.snapshot.weekEnd, frozenAt: j.snapshot.frozenAt, reason: j.snapshot.reason, leaderboard: expandRows(j.cols, j.snapshot.rows), user: null } : null;
+      data = { now: j.now, polls: j.polls, snapshotKind: j.snapshotKind, snapshotLog: j.snapshotLog || [], rates: j.rates || null, historyCount: 0, latest: latest, snapshot: snap, combined: computeCombined(snap, latest), publishedAt: j.now };
+      render();
+    }).catch(function () {});
+    if (!wal || walTick++ % 4 === 0) fetch(DATA_BASE + 'wallets.json' + bust(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
+      var bal = {}; Object.keys(j.b || {}).forEach(function (a) { var v = j.b[a]; bal[a] = { eth: v[0], usdc: v[1], weth: v[2], ethMain: v[3], usd: v[4] }; });
+      wal = { at: j.at, price: j.price, status: { at: j.at, count: Object.keys(bal).length, running: false, lastError: '' }, balances: bal }; render();
+    }).catch(function () {});
+    if (tab === 'activity') fetch(DATA_BASE + 'activity.json' + bust(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) { actRaw = j; adaptActivity(); render(); }).catch(function () {});
+  }
+  function exportCsv() {
+    var c = data && data.combined; if (!c) return;
+    var esc2 = function (v) { var t = v == null ? '' : String(v); return /[";\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+    var lines = ['rank;player;address;snapshot;current_week;total_coins;keys_total;coins_per_key;new;usd_payout;wallet_usd'];
+    c.rows.forEach(function (r) { lines.push([r.rank, r.name, r.address, r.snapshot, r.current, r.total, r.keysTotal, r.perKey, r.isNew ? 1 : 0, combUsd(r), usdOf(r.address)].map(esc2).join(';')); });
+    var blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'mog-combined-' + new Date().toISOString().slice(0, 10) + '.csv'; document.body.appendChild(a); a.click(); a.remove();
+  }
+  document.getElementById('csv').addEventListener('click', exportCsv);
+  document.querySelectorAll('.tab').forEach(function (b) { b.addEventListener('click', function () { tab = b.dataset.tab; document.querySelectorAll('.tab').forEach(function (x) { x.classList.toggle('on', x === b); }); fillSortSelect(); render(); load(); }); });
+  fillSortSelect();
+  $('#q').addEventListener('input', function (e) { q = e.target.value.trim(); render(); });
+  function setSort(k, d) { sortKey = k; sortDir = d || (k === 'rank' ? 'asc' : 'desc'); if (k === 'perKey' && !minKeys) minKeys = 100; saveSort(); fillSortSelect(); render(); }
+  $('#sort').addEventListener('change', function (e) { setSort(e.target.value); });
+  $('#mynick').value = myNick;
+  $('#mynick').addEventListener('change', function (e) { myNick = e.target.value.trim(); try { localStorage.setItem('lbMyNick', myNick); } catch (err) {} render(); });
+  $('#onlynew').addEventListener('change', function (e) { onlyNew = !!e.target.checked; render(); });
+  $('#minkeys').addEventListener('change', function (e) { minKeys = Math.max(0, Number(e.target.value) || 0); saveSort(); render(); });
+  $('#table').addEventListener('click', function (e) { var t = e.target.closest ? e.target.closest('th[data-sort]') : null; if (!t) return; var k = t.dataset.sort; if (k === sortKey) setSort(k, sortDir === 'desc' ? 'asc' : 'desc'); else setSort(k); });
+  $('#win').addEventListener('change', function (e) { win = Number(e.target.value) || 15; adaptActivity(); render(); load(); });
+  load();
+  setInterval(load, 60000);
+})();
+</script>
+</body>
+</html>

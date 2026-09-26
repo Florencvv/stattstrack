@@ -123,7 +123,7 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
 
   var SORTS = {
     live: { rank: 'место', treasure: 'монеты', marbles: 'марблы', runCount: 'забеги', totalKeysSpent: 'ключи', perKey: 'монет за ключ', coinsUsd: '≈ $ выплата', usd: '$ на кошельке', ethAbs: 'ETH на Abstract', usdc: 'USDC.e' },
-    combined: { rank: 'место', snapshot: 'снимок', current: 'новая неделя', total: 'TOTAL COINS', keysTotal: 'ключи всего', perKey: 'монет за ключ', coinsUsd: '≈ $ выплата', usd: '$ на кошельке' },
+    combined: { rank: 'место', snapshot: 'снимок', current: 'новая неделя', total: 'TOTAL COINS', keysTotal: 'ключи всего', runsTotal: 'забеги всего', perKey: 'монет за ключ', coinsUsd: '≈ $ выплата', usd: '$ на кошельке' },
     activity: { rank: 'место', treasure: 'монеты сейчас', dTreasure: '+монеты за окно', dRuns: '+забеги', dKeys: '+ключи' }
   };
   var sortKey = 'rank', sortDir = 'asc', minKeys = 0;
@@ -187,14 +187,14 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
     if (!c || !c.rows.length) return '<div class="empty">сводной ещё нет: нужен хотя бы один опрос</div>';
     var rows = orderRows(c.rows, 'combined');
     if (onlyNew) rows = rows.filter(function (r) { return r.isNew; });
-    var h = '<table><tr>' + posHead() + th('rank', '#') + '<th class="l">игрок</th><th class="l">адрес</th>' + th('snapshot', 'снимок (прошлая неделя)') + th('current', 'новая неделя') + th('total', 'TOTAL COINS') + th('keysTotal', '🔑 ключи всего') + th('perKey', '🪙 за ключ') + th('coinsUsd', '≈ $ выплата') + th('usd', '$ на кошельке') + '</tr>';
+    var h = '<table><tr>' + posHead() + th('rank', '#') + '<th class="l">игрок</th><th class="l">адрес</th>' + th('snapshot', 'снимок (прошлая неделя)') + th('current', 'новая неделя') + th('total', 'TOTAL COINS') + th('keysTotal', '🔑 ключи всего') + th('runsTotal', '🏃 забеги всего') + th('perKey', '🪙 за ключ') + th('coinsUsd', '≈ $ выплата') + th('usd', '$ на кошельке') + '</tr>';
     var shown = 0;
     rows.forEach(function (r) {
       if (!matches(r.name, r.address)) return;
       var me = isMe(r.name, r.address);
       var cell = playerCell(r.name, r.address, r.avatar);
       if (r.isNew) cell = cell.replace('</td>', '<span class="badge new" title="в снимке прошлой недели его не было">НОВЫЙ</span></td>');
-      h += '<tr' + (me ? ' class="me"' : '') + '>' + posCell(shown) + '<td class="dim">' + r.rank + '</td>' + cell + '<td class="l addr">' + esc(shortAddr(r.address)) + '</td><td class="dim">' + (r.isNew ? '—' : fmt(r.snapshot)) + '</td><td class="mint">' + (c.newWeek ? '+' + fmt(r.current) : '—') + '</td><td class="total">' + fmt(r.total) + '</td><td class="dim">' + fmt(r.keysTotal) + '</td><td class="cyan">' + fmt1(r.perKey) + '</td><td class="mint">' + fmtUsd2(combUsd(r)) + '</td><td class="' + (usdOf(r.address) >= 1000 ? 'gold' : 'dim') + '">' + fmtUsd(usdOf(r.address)) + '</td></tr>';
+      h += '<tr' + (me ? ' class="me"' : '') + '>' + posCell(shown) + '<td class="dim">' + r.rank + '</td>' + cell + '<td class="l addr">' + esc(shortAddr(r.address)) + '</td><td class="dim">' + (r.isNew ? '—' : fmt(r.snapshot)) + '</td><td class="mint">' + (c.newWeek ? '+' + fmt(r.current) : '—') + '</td><td class="total">' + fmt(r.total) + '</td><td class="dim">' + fmt(r.keysTotal) + '</td><td title="снимок ' + fmt(r.runsSnapshot) + ' + новая неделя ' + fmt(r.runsCurrent) + '">' + fmt(r.runsTotal) + '</td><td class="cyan">' + fmt1(r.perKey) + '</td><td class="mint">' + fmtUsd2(combUsd(r)) + '</td><td class="' + (usdOf(r.address) >= 1000 ? 'gold' : 'dim') + '">' + fmtUsd(usdOf(r.address)) + '</td></tr>';
       shown++;
     });
     h += '</table>';
@@ -249,7 +249,7 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
     var pin = '';
     if (myNick && c && c.rows.length) {
       var mine = c.rows.filter(function (r) { return isMe(r.name, r.address); })[0];
-      if (mine) pin = '<b>' + esc(mine.name) + '</b>: в сводной <b>' + mine.rank + ' место из ' + c.rows.length + '</b> · TOTAL COINS <b>' + fmt(mine.total) + '</b>' + (combUsd(mine) != null ? ' ≈ <b>' + fmtUsd2(combUsd(mine)) + '</b>' : '') + ' (снимок ' + fmt(mine.snapshot) + ' + новая неделя ' + fmt(mine.current) + ')' + (mine.curRank ? ' · в живом weekly сейчас ' + mine.curRank + ' место' : ' · в новой неделе ещё нет забегов') + (c.newCount ? ' · новых игроков, которых не было в снимке: <b>' + c.newCount + '</b>' : '');
+      if (mine) pin = '<b>' + esc(mine.name) + '</b>: в сводной <b>' + mine.rank + ' место из ' + c.rows.length + '</b> · TOTAL COINS <b>' + fmt(mine.total) + '</b>' + (combUsd(mine) != null ? ' ≈ <b>' + fmtUsd2(combUsd(mine)) + '</b>' : '') + ' (снимок ' + fmt(mine.snapshot) + ' + новая неделя ' + fmt(mine.current) + ') · забегов всего <b>' + fmt(mine.runsTotal) + '</b> (' + fmt(mine.runsSnapshot) + ' + ' + fmt(mine.runsCurrent) + ')' + (mine.curRank ? ' · в живом weekly сейчас ' + mine.curRank + ' место' : ' · в новой неделе ещё нет забегов') + (c.newCount ? ' · новых игроков, которых не было в снимке: <b>' + c.newCount + '</b>' : '');
       else pin = 'ник «' + esc(myNick) + '» в таблице не найден';
     }
     var pinEl = $('#mepin'); pinEl.style.display = pin ? '' : 'none'; pinEl.innerHTML = pin;
@@ -269,9 +269,9 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
     var add = function (rec, field) {
       (rec && rec.leaderboard || []).forEach(function (row) {
         var k = rowKey(row); if (!k) return;
-        var e = map[k] || (map[k] = { key: k, name: pk(row, NAMEK), address: pk(row, ADDRK), avatar: row.profilePictureUrl || null, snapshot: 0, current: 0, keysSnapshot: 0, keysCurrent: 0, inSnap: false, inCur: false, curRank: null, snapshotLive: null });
+        var e = map[k] || (map[k] = { key: k, name: pk(row, NAMEK), address: pk(row, ADDRK), avatar: row.profilePictureUrl || null, snapshot: 0, current: 0, keysSnapshot: 0, keysCurrent: 0, inSnap: false, inCur: false, curRank: null, snapshotLive: null, runsSnapshot: 0, runsCurrent: 0 });
         e[field] = numv(row.treasure);
-        if (field === 'snapshot') { e.keysSnapshot = numv(row.totalKeysSpent); e.inSnap = true; } else { e.keysCurrent = numv(row.totalKeysSpent); e.inCur = true; e.curRank = numv(row.rank) || null; }
+        if (field === 'snapshot') { e.keysSnapshot = numv(row.totalKeysSpent); e.runsSnapshot = numv(row.runCount); e.inSnap = true; } else { e.keysCurrent = numv(row.totalKeysSpent); e.runsCurrent = numv(row.runCount); e.inCur = true; e.curRank = numv(row.rank) || null; }
         if (!e.name) e.name = pk(row, NAMEK);
         if (!e.avatar && row.profilePictureUrl) e.avatar = row.profilePictureUrl;
       });
@@ -283,6 +283,7 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
       var keysTotal = newWeek ? e.keysSnapshot + e.keysCurrent : (e.snapshotLive != null ? e.keysCurrent : e.keysSnapshot);
       return { key: e.key, name: e.name, address: e.address, avatar: e.avatar, snapshot: newWeek ? e.snapshot : (e.snapshotLive != null ? e.snapshotLive : e.snapshot), current: newWeek ? e.current : 0, total: total,
         keysSnapshot: newWeek ? e.keysSnapshot : 0, keysCurrent: newWeek ? e.keysCurrent : keysTotal, keysTotal: keysTotal, perKey: keysTotal ? Math.round(total / keysTotal * 10) / 10 : null,
+        runsSnapshot: newWeek ? e.runsSnapshot : 0, runsCurrent: newWeek ? e.runsCurrent : (e.snapshotLive != null ? e.runsCurrent : e.runsSnapshot), runsTotal: newWeek ? e.runsSnapshot + e.runsCurrent : (e.snapshotLive != null ? e.runsCurrent : e.runsSnapshot),
         isNew: newWeek ? (e.inCur && !e.inSnap) : false, inCur: e.inCur, curRank: e.curRank };
     });
     rows.sort(function (a, b) { return b.total - a.total; });

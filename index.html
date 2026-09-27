@@ -135,7 +135,7 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
   var SORTS = {
     live: { rank: 'место', treasure: 'монеты', marbles: 'марблы', runCount: 'забеги', totalKeysSpent: 'ключи', perKey: 'монет за ключ', coinsUsd: '≈ $ выплата', usd: '$ на кошельке', ethAbs: 'ETH на Abstract', usdc: 'USDC.e' },
     combined: { rank: 'место', snapshot: 'снимок', current: 'новая неделя', total: 'TOTAL COINS', keysTotal: 'ключи всего', runsTotal: 'забеги всего', perKey: 'монет за ключ', coinsUsd: '≈ $ выплата', usd: '$ на кошельке' },
-    activity: { rank: 'место', treasure: 'монеты сейчас', dTreasure: '+монеты за окно', dRuns: '+забеги', dKeys: '+ключи' }
+    activity: { rank: 'место', treasure: 'монеты сейчас', dTreasure: '+монеты за окно', dRuns: '+забеги', dKeys: '+ключи', stake: 'ставка за окно' }
   };
   var sortKey = 'rank', sortDir = 'asc', minKeys = 0;
   try { var sv = JSON.parse(localStorage.getItem('lbSort') || 'null'); if (sv) { sortKey = sv.k || 'rank'; sortDir = sv.d || 'asc'; minKeys = Number(sv.m) || 0; } } catch (e) {}
@@ -144,6 +144,7 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
   function valueOf(r, key, kind) {
     if (key === 'perKey') return kind === 'raw' ? perKey(r.treasure, r.totalKeysSpent) : (typeof r.perKey === 'number' ? r.perKey : null);
     if (key === 'coinsUsd') return kind === 'raw' ? coinsUsd(r.treasure, tab === 'snapshot' ? ratePrev() : rateCur()) : combUsd(r);
+    if (key === 'stake') return r.dRuns > 0 ? r.dKeys / r.dRuns : null;
     if (key === 'usd' || key === 'ethAbs' || key === 'usdc') { var b = walOf(kind === 'raw' ? pick(r, ADDR) : r.address); if (!b) return null; return key === 'usd' ? (typeof b.usd === 'number' ? b.usd : null) : key === 'ethAbs' ? ((b.eth || 0) + (b.weth || 0)) : (typeof b.usdc === 'number' ? b.usdc : null); }
     var v = r[key]; return typeof v === 'number' ? v : (v == null ? null : Number(v));
   }
@@ -226,7 +227,8 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
       var active = rows.filter(function (r) { return !r.unknown && ((r.dTreasure || 0) > 0 || (r.dRuns || 0) > 0 || r.isNew); });
       var dT = 0, dR = 0, dK = 0; active.forEach(function (r) { dT += r.dTreasure || 0; dR += r.dRuns || 0; dK += r.dKeys || 0; });
       var pct = sizes[g[2]] ? Math.round(active.length / sizes[g[2]] * 100) : 0;
-      h += '<div class="grp"><div class="t">' + g[2] + '</div><div class="n">' + active.length + ' <small>из ' + sizes[g[2]] + ' фармят · ' + pct + '%</small></div><div class="d">+' + fmt(dT) + ' 🪙 <span>· забегов +' + fmt(dR) + ' · ключей +' + fmt(dK) + '</span></div></div>';
+      var stake = dR > 0 ? Math.round(dK / dR * 10) / 10 : null, perRun = dR > 0 ? Math.round(dT / dR) : null;
+      h += '<div class="grp"><div class="t">' + g[2] + '</div><div class="n">' + active.length + ' <small>из ' + sizes[g[2]] + ' фармят · ' + pct + '%</small></div><div class="d">+' + fmt(dT) + ' 🪙 <span>· забегов +' + fmt(dR) + ' · ключей +' + fmt(dK) + '</span></div><div class="d" style="margin-top:4px">' + (stake != null ? 'средняя ставка <b style="color:var(--gold)">' + fmt1(stake) + ' 🔑</b> <span>· ' + fmt(perRun) + ' 🪙 за забег</span>' : '<span>нет завершённых забегов</span>') + '</div></div>';
     });
     box.innerHTML = h; box.style.display = h ? '' : 'none';
   }
@@ -234,12 +236,12 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
     if (!a || !a.rows.length) return '<div class="empty">' + esc(a && a.note ? a.note : 'история опросов ещё копится: подожди пару минут') + '</div>';
     var base = a.rows.filter(function (r) { return q || withinTop(r.rank); });
     var rows = (sortKey === 'rank' && sortDir === 'asc') ? base.filter(function (r) { return !(minKeys > 0 && keysOf(r, 'activity') < minKeys); }) : orderRows(base, 'activity');
-    var h = '<table><tr>' + posHead() + th('rank', '#') + '<th class="l">игрок</th>' + th('treasure', '🪙 сейчас') + th('dTreasure', '+монеты за окно') + th('dRuns', '+забеги') + th('dKeys', '+ключи') + '<th>место было</th></tr>';
+    var h = '<table><tr>' + posHead() + th('rank', '#') + '<th class="l">игрок</th>' + th('treasure', '🪙 сейчас') + th('dTreasure', '+монеты за окно') + th('dRuns', '+забеги') + th('dKeys', '+ключи') + th('stake', '🔑 ставка') + '<th>место было</th></tr>';
     var shown = 0;
     rows.forEach(function (r) {
       if (!matches(r.name, r.address)) return;
       var hot = (r.dTreasure || 0) > 0;
-      h += '<tr class="' + (hot ? 'hot' : '') + '">' + posCell(shown) + '<td class="dim">' + r.rank + '</td>' + playerCell(r.name, r.address, r.avatar) + '<td class="gold">' + fmt(r.treasure) + '</td><td class="' + (hot ? 'mint' : 'dim') + '">' + (r.isNew ? '<span class="badge">новый в таблице</span>' : sgn(r.dTreasure)) + '</td><td class="' + (r.dRuns > 0 ? 'mint' : 'dim') + '">' + (r.isNew ? '—' : sgn(r.dRuns)) + '</td><td class="' + (r.dKeys > 0 ? '' : 'dim') + '">' + (r.isNew ? '—' : sgn(r.dKeys)) + '</td><td class="dim">' + (r.prevRank != null ? (r.prevRank === r.rank ? '=' : r.prevRank + ' → ' + r.rank) : '—') + '</td></tr>';
+      h += '<tr class="' + (hot ? 'hot' : '') + '">' + posCell(shown) + '<td class="dim">' + r.rank + '</td>' + playerCell(r.name, r.address, r.avatar) + '<td class="gold">' + fmt(r.treasure) + '</td><td class="' + (hot ? 'mint' : 'dim') + '">' + (r.isNew ? '<span class="badge">новый в таблице</span>' : sgn(r.dTreasure)) + '</td><td class="' + (r.dRuns > 0 ? 'mint' : 'dim') + '">' + (r.isNew ? '—' : sgn(r.dRuns)) + '</td><td class="' + (r.dKeys > 0 ? '' : 'dim') + '">' + (r.isNew ? '—' : sgn(r.dKeys)) + '</td><td class="' + (r.dRuns > 0 ? 'gold' : 'dim') + '" title="ключей за окно / забегов за окно">' + (r.dRuns > 0 ? fmt1(Math.round(r.dKeys / r.dRuns * 10) / 10) : '—') + '</td><td class="dim">' + (r.prevRank != null ? (r.prevRank === r.rank ? '=' : r.prevRank + ' → ' + r.rank) : '—') + '</td></tr>';
       shown++;
     });
     h += '</table>';

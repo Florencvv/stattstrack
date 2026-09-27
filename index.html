@@ -53,6 +53,13 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
 .badge.new{background:rgba(255,79,109,.18);color:var(--coral);font-weight:900}
 .mepin{margin:0 0 12px;padding:10px 14px;border-radius:12px;background:rgba(255,196,45,.12);border:1px solid rgba(255,196,45,.5);font-weight:800}
 .mepin b{color:var(--gold)}
+.groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:0 0 14px}
+.grp{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.grp .t{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:800}
+.grp .n{font-size:22px;font-weight:900;color:var(--mint);margin:2px 0}
+.grp .n small{font-size:13px;color:var(--muted);font-weight:700}
+.grp .d{font-size:13px;color:var(--text);font-weight:700}
+.grp .d span{color:var(--muted);font-weight:600}
 .bar label.pill input[type=text]{padding:5px 8px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--text);font-weight:700}
 </style>
 </head>
@@ -91,6 +98,7 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
     <span class="pill" id="p-polls">опросов: 0</span>
   </div>
   <div class="mepin" id="mepin" style="display:none"></div>
+  <div class="groups" id="groups" style="display:none"></div>
   <p class="note" id="note"></p>
   <div class="log" id="snaplog" style="display:none"></div>
   <div id="table"></div>
@@ -204,6 +212,24 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
     if (!shown) h += '<div class="empty">ничего не найдено</div>';
     return h;
   }
+  var GROUPS = [[1, 100, 'топ 1-100'], [101, 200, 'топ 101-200'], [201, 300, 'топ 201-300'], [301, 500, 'топ 301-500'], [501, 1000, 'места 501-1000'], [1001, Infinity, 'ниже 1000']];
+  function renderGroups(a) {
+    var box = $('#groups');
+    if (tab !== 'activity' || !a || !data || !data.latest) { box.style.display = 'none'; return; }
+    var sizes = {}, live = data.latest.leaderboard || [];
+    GROUPS.forEach(function (g) { sizes[g[2]] = 0; });
+    live.forEach(function (r) { var rk = Number(r.rank) || 0; GROUPS.forEach(function (g) { if (rk >= g[0] && rk <= g[1]) sizes[g[2]]++; }); });
+    var h = '';
+    GROUPS.forEach(function (g) {
+      if (!sizes[g[2]] && g[1] === Infinity) return;
+      var rows = a.rows.filter(function (r) { var rk = Number(r.rank) || 0; return rk >= g[0] && rk <= g[1]; });
+      var active = rows.filter(function (r) { return (r.dTreasure || 0) > 0 || (r.dRuns || 0) > 0 || r.isNew; });
+      var dT = 0, dR = 0, dK = 0; active.forEach(function (r) { dT += r.dTreasure || 0; dR += r.dRuns || 0; dK += r.dKeys || 0; });
+      var pct = sizes[g[2]] ? Math.round(active.length / sizes[g[2]] * 100) : 0;
+      h += '<div class="grp"><div class="t">' + g[2] + '</div><div class="n">' + active.length + ' <small>из ' + sizes[g[2]] + ' фармят · ' + pct + '%</small></div><div class="d">+' + fmt(dT) + ' 🪙 <span>· забегов +' + fmt(dR) + ' · ключей +' + fmt(dK) + '</span></div></div>';
+    });
+    box.innerHTML = h; box.style.display = h ? '' : 'none';
+  }
   function renderActivity(a) {
     if (!a || !a.rows.length) return '<div class="empty">' + esc(a && a.note ? a.note : 'история опросов ещё копится: подожди пару минут') + '</div>';
     var base = a.rows.filter(function (r) { return q || withinTop(r.rank); });
@@ -257,6 +283,7 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
       else pin = 'ник «' + esc(myNick) + '» в таблице не найден';
     }
     var pinEl = $('#mepin'); pinEl.style.display = pin ? '' : 'none'; pinEl.innerHTML = pin;
+    renderGroups(act);
     $('#table').innerHTML = tab === 'live' ? renderRaw(latest, 'живой weekly') : tab === 'snapshot' ? renderRaw(snap, 'снимок') : tab === 'combined' ? renderCombined(c) : renderActivity(act);
   }
   var DATA_BASE = 'https://raw.githubusercontent.com/Florencvv/stattstrack/data/';

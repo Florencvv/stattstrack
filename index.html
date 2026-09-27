@@ -223,7 +223,7 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
     GROUPS.forEach(function (g) {
       if (!sizes[g[2]] && g[1] === Infinity) return;
       var rows = a.rows.filter(function (r) { var rk = Number(r.rank) || 0; return rk >= g[0] && rk <= g[1]; });
-      var active = rows.filter(function (r) { return (r.dTreasure || 0) > 0 || (r.dRuns || 0) > 0 || r.isNew; });
+      var active = rows.filter(function (r) { return !r.unknown && ((r.dTreasure || 0) > 0 || (r.dRuns || 0) > 0 || r.isNew); });
       var dT = 0, dR = 0, dK = 0; active.forEach(function (r) { dT += r.dTreasure || 0; dR += r.dRuns || 0; dK += r.dKeys || 0; });
       var pct = sizes[g[2]] ? Math.round(active.length / sizes[g[2]] * 100) : 0;
       h += '<div class="grp"><div class="t">' + g[2] + '</div><div class="n">' + active.length + ' <small>из ' + sizes[g[2]] + ' фармят · ' + pct + '%</small></div><div class="d">+' + fmt(dT) + ' 🪙 <span>· забегов +' + fmt(dR) + ' · ключей +' + fmt(dK) + '</span></div></div>';
@@ -325,7 +325,7 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
   function adaptActivity() {
     if (!actRaw || !actRaw.windows || !actRaw.windows[win]) { act = null; return; }
     var w = actRaw.windows[win];
-    act = { minutes: win, baseAt: w.baseAt, note: w.note, rows: (w.rows || []).map(function (a) { return { rank: a[0], name: a[1], address: a[2], avatar: a[3], treasure: a[4], dTreasure: a[5], runs: a[6], dRuns: a[7], keys: a[8], dKeys: a[9], isNew: !!a[10], prevRank: a[11] }; }) };
+    act = { minutes: win, baseAt: w.baseAt, note: w.note, rows: (w.rows || []).map(function (a) { return { rank: a[0], name: a[1], address: a[2], avatar: a[3], treasure: a[4], dTreasure: a[5], runs: a[6], dRuns: a[7], keys: a[8], dKeys: a[9], isNew: !!a[10], prevRank: a[11], unknown: !!a[12] }; }) };
     if (!act.rows.length && !act.note) act.note = 'за это окно ни у кого нет прироста';
   }
   function load() {

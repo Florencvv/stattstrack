@@ -84,6 +84,7 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
     </select>
     <label class="pill" title="ник или адрес, который выделять во всех таблицах и показывать его место в сводной">мой ник <input id="mynick" type="text" placeholder="florencev" style="width:120px"></label>
     <label class="pill" id="l-onlynew" style="display:none"><input id="onlynew" type="checkbox"> только новые</label>
+    <label class="pill" title="показывать только верх таблицы, без хвоста из тысячных мест">показывать <select id="topn"><option value="100">топ-100</option><option value="300">топ-300</option><option value="500">топ-500</option><option value="1000">топ-1000</option><option value="0">всех</option></select></label>
     <label class="pill">сортировка <select id="sort"></select></label>
     <label class="pill" title="скрыть игроков, у которых потрачено меньше ключей: убирает случайные значения «за ключ»">мин. ключей <input id="minkeys" type="number" min="0" step="10" placeholder="0"></label>
     <button class="btn" id="csv" type="button">⬇ CSV сводной</button>
@@ -97,6 +98,8 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
 <script>
 (function () {
   var tab = 'live', data = null, act = null, q = '', win = 15, wal = null, onlyNew = false;
+  var topN = 500; try { topN = Number(localStorage.getItem('lbTopN')) || 500; } catch (e) {}
+  var withinTop = function (rank) { return !topN || !rank || rank <= topN; };
   var myNick = ''; try { myNick = (localStorage.getItem('lbMyNick') || '').trim(); } catch (e) {}
   var isMe = function (name, addr) { if (!myNick) return false; var m = myNick.toLowerCase(); return String(name || '').toLowerCase() === m || String(addr || '').toLowerCase() === m; };
   var walOf = function (addr) { return wal && wal.balances ? wal.balances[String(addr || '').toLowerCase()] : null; };
@@ -161,7 +164,7 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
 
   function renderRaw(rec, label) { // как в игре: # · игрок · монеты · марблы · забеги · ключи, плюс монеты за ключ
     if (!rec) return '<div class="empty">' + esc(label) + ': данных ещё нет</div>';
-    var rows = orderRows(rec.leaderboard || [], 'raw'), meKey = rec.user ? String(pick(rec.user, ADDR) || '').toLowerCase() : '';
+    var rows = orderRows((rec.leaderboard || []).filter(function (r) { return q || withinTop(r.rank); }), 'raw'), meKey = rec.user ? String(pick(rec.user, ADDR) || '').toLowerCase() : '';
     var h = '<table><tr>' + posHead() + th('rank', '#') + '<th class="l">игрок</th><th class="l">адрес</th>' + th('treasure', '🪙 монеты') + th('marbles', '💚 марблы') + th('runCount', '🏃 забеги') + th('totalKeysSpent', '🔑 ключи') + th('perKey', '🪙 за ключ') + th('coinsUsd', '≈ $ выплата') + th('ethAbs', 'ETH Abstract') + th('usdc', 'USDC.e') + th('usd', '$ на кошельке') + '</tr>';
     var shown = 0;
     rows.forEach(function (r, i) {
@@ -185,7 +188,7 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
   var combUsd = function (r) { var a = coinsUsd(r.snapshot, ratePrev()), b = coinsUsd(r.current, rateCur()); if (a == null && b == null) return null; return Math.round(((a || 0) + (b || 0)) * 100) / 100; };
   function renderCombined(c) {
     if (!c || !c.rows.length) return '<div class="empty">сводной ещё нет: нужен хотя бы один опрос</div>';
-    var rows = orderRows(c.rows, 'combined');
+    var rows = orderRows(c.rows.filter(function (r) { return q || withinTop(r.rank); }), 'combined');
     if (onlyNew) rows = rows.filter(function (r) { return r.isNew; });
     var h = '<table><tr>' + posHead() + th('rank', '#') + '<th class="l">игрок</th><th class="l">адрес</th>' + th('snapshot', 'снимок (прошлая неделя)') + th('current', 'новая неделя') + th('total', 'TOTAL COINS') + th('keysTotal', '🔑 ключи всего') + th('runsTotal', '🏃 забеги всего') + th('perKey', '🪙 за ключ') + th('coinsUsd', '≈ $ выплата') + th('usd', '$ на кошельке') + '</tr>';
     var shown = 0;
@@ -203,7 +206,8 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
   }
   function renderActivity(a) {
     if (!a || !a.rows.length) return '<div class="empty">' + esc(a && a.note ? a.note : 'история опросов ещё копится: подожди пару минут') + '</div>';
-    var rows = (sortKey === 'rank' && sortDir === 'asc') ? a.rows.filter(function (r) { return !(minKeys > 0 && keysOf(r, 'activity') < minKeys); }) : orderRows(a.rows, 'activity');
+    var base = a.rows.filter(function (r) { return q || withinTop(r.rank); });
+    var rows = (sortKey === 'rank' && sortDir === 'asc') ? base.filter(function (r) { return !(minKeys > 0 && keysOf(r, 'activity') < minKeys); }) : orderRows(base, 'activity');
     var h = '<table><tr>' + posHead() + th('rank', '#') + '<th class="l">игрок</th>' + th('treasure', '🪙 сейчас') + th('dTreasure', '+монеты за окно') + th('dRuns', '+забеги') + th('dKeys', '+ключи') + '<th>место было</th></tr>';
     var shown = 0;
     rows.forEach(function (r) {
@@ -324,6 +328,8 @@ td.total{color:var(--gold);font-weight:900;font-size:16px}
   $('#q').addEventListener('input', function (e) { q = e.target.value.trim(); render(); });
   function setSort(k, d) { sortKey = k; sortDir = d || (k === 'rank' ? 'asc' : 'desc'); if (k === 'perKey' && !minKeys) minKeys = 100; saveSort(); fillSortSelect(); render(); }
   $('#sort').addEventListener('change', function (e) { setSort(e.target.value); });
+  $('#topn').value = String(topN);
+  $('#topn').addEventListener('change', function (e) { topN = Number(e.target.value) || 0; try { localStorage.setItem('lbTopN', String(topN)); } catch (err) {} render(); });
   $('#mynick').value = myNick;
   $('#mynick').addEventListener('change', function (e) { myNick = e.target.value.trim(); try { localStorage.setItem('lbMyNick', myNick); } catch (err) {} render(); });
   $('#onlynew').addEventListener('change', function (e) { onlyNew = !!e.target.checked; render(); });
